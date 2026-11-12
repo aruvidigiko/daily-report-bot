@@ -34,8 +34,7 @@ def open_incognito(url):
     pyautogui.write(f"chrome --incognito --start-maximized {url}", interval=0.03)
     pyautogui.press("enter")
     time.sleep(6)                                        # wait for Chrome + page to load
-    pyautogui.hotkey("win", "up")                        # maximize the window
-    time.sleep(1)
+    maximize_window("Google Chrome")                     # every Chrome window title ends with this
 
 
 def copy_page_text():
@@ -220,8 +219,7 @@ def open_excel_new_workbook():
     time.sleep(2)
     pyautogui.click(*EXCEL_BLANK_WORKBOOK)          # click "Blank workbook" on the Start screen
     time.sleep(4)
-    pyautogui.hotkey("win", "up")                   # maximize the new workbook window
-    time.sleep(1)
+    maximize_window("Excel")                        # maximize FIRST, so the tile is where we measured it
 
 
 def paste_table(table):
@@ -236,16 +234,44 @@ def paste_table(table):
     time.sleep(1)
     pyautogui.hotkey("ctrl", "home")
 
+def wait_for_window(title, timeout=15):
+    """Keep checking until a window with this title appears (or give up)."""
+    for _ in range(timeout * 2):
+        if pyautogui.getWindowsWithTitle(title):
+            return True
+        time.sleep(0.5)
+    return False
+
+def maximize_window(title):
+    """Wait for a window whose title contains this text, then maximize it."""
+    if wait_for_window(title):
+        win = pyautogui.getWindowsWithTitle(title)[0]
+        if not win.isMaximized:
+            win.maximize()
+        time.sleep(1)
 
 def save_workbook(path):
     if os.path.exists(path):
         os.remove(path)                             # avoid the "replace file?" pop-up
-    pyautogui.press("f12")                          # Save As dialog
-    time.sleep(3)
+    pyautogui.press("f12")                          # open Save As
+
+    if not wait_for_window("Save As"):
+        print("Save As dialog did not open")
+        return False
+    time.sleep(1)
+
+    pyautogui.hotkey("alt", "n")                    # jump to the "File name" box
+    pyautogui.hotkey("ctrl", "a")                   # select whatever is in it
     pyperclip.copy(path)
     pyautogui.hotkey("ctrl", "v")                   # paste the full file path
     pyautogui.press("enter")
-    time.sleep(4)
+
+    # Wait until the file really exists on disk
+    for _ in range(20):
+        if os.path.exists(path):
+            return True
+        time.sleep(0.5)
+    return False
 
 # ================= MAIN =================
 print("Starting in 5 seconds... hands off the mouse!")
@@ -266,9 +292,11 @@ screenshot_path = os.path.abspath(f"daily_report_{today}.png")
 
 open_excel_new_workbook()
 paste_table(table)
-save_workbook(excel_path)
+saved = save_workbook(excel_path)
 pyautogui.screenshot(screenshot_path)
-
-print(f"Saved: {excel_path}")
+if saved:
+    print(f"Saved: {excel_path}")
+else:
+    print("WARNING: Excel file was NOT saved")
 print(f"Saved: {screenshot_path}")
 print("Daily report complete!")
