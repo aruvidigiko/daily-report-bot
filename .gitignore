@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Secrets
+.env
+
+# Bot output (daily files) - samples live in sample_output/
+/daily_report_*.xlsx
+/daily_report_*.png
+debug_*.txt
+
+# Excel temp files
+~$*.xlsx
+
+# Editor and OS
+.vscode/
+Thumbs.db
